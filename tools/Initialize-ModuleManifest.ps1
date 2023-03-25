@@ -45,6 +45,7 @@ New-File "$Path/tests/$ModuleName.Tests.ps1"
 Write-Host ""
 
 $moduleSettings = @{
+    RootModule        = '.\SentinelGuru.psm1'
     Path              = "$Path/$ModuleName/$ModuleName.psd1"
     ModuleVersion     = '0.0.1'
     GUID              = 'a6aba8fa-1fb8-40ae-83c9-7f87ce8d0cfd'
@@ -52,6 +53,8 @@ $moduleSettings = @{
     Copyright         = "MIT License - Copyright © $currentYear Francois Lefebvre"
     Description       = 'Powershell module to facilitate consolidation of detection rules and their data sources'
     PowerShellVersion = '7.0'
+    ScriptsToProcess  = @(".\classes\*.ps1")
+    FormatsToProcess    = @(".\classesFormat\*.ps1xml")
     FunctionsToExport = @()
     CmdletsToExport   = @()
     VariablesToExport = '*'
