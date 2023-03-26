@@ -52,6 +52,7 @@ $moduleSettings = @{
     Author            = 'Francois Lefebvre'
     Copyright         = "MIT License - Copyright © $currentYear Francois Lefebvre"
     Description       = 'Powershell module to facilitate consolidation of detection rules and their data sources'
+    CompatiblePSEditions = @('Core')
     PowerShellVersion = '7.0'
     ScriptsToProcess  = @(".\classes\*.ps1")
     FormatsToProcess    = @(".\classesFormat\*.ps1xml")
