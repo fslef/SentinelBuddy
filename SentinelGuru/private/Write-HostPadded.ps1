@@ -1,3 +1,5 @@
+#Requires -PSEdition Core
+
 function Write-HostPadded {
     [CmdletBinding()]
     param (
@@ -61,12 +63,3 @@ function Write-HostPadded {
     }
 
 }
-
-####
-# Write-HostPadded -Text "This is a test"
-# Write-HostPadded -Text "This is a test" -PaddingChar '.'
-# Write-HostPadded -Text "This is a test identation" -PaddingChar '.' -Indent 1
-# Write-HostPadded -Text "This is a test identation" -IndentLevel 2
-# Write-HostPadded -Text "This is a test identation" -IndentLevel 2
-# Write-HostPadded -Text "This is a test identation" -IndentLevel 2 -ForegroundColor Yellow
-# Write-HostPadded -Text "This is a test identation" -IndentLevel 2 -ForegroundColor Yellow
