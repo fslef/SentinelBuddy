@@ -12,7 +12,8 @@
 		"ghcr.io/natescherer/devcontainers-custom-features/powershell-resources:1": {
 			"resources": [
 				"Az",
-				"PSScriptAnalyzer"
+				"PSScriptAnalyzer",
+				"Pester"
 			]
 		}
 	},
