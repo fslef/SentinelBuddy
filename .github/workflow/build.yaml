@@ -1,0 +1,78 @@
+name: Build and Test PowerShell Module
+
+on:
+  push:
+    branches:
+      - main
+      -feature/*
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Setup PowerShell
+      uses: actions/setup-powershell@v1
+      with:
+        powershell-version: '7.0.0'
+
+    - name: Install dependencies
+      run: |
+        Install-Module -Name Pester -Scope CurrentUser -Force -SkipPublisherCheck
+        Install-Module -Name PowerShell-Yaml -Scope CurrentUser -Force -SkipPublisherCheck
+
+    - name: Run Pester tests
+      run: |
+        Import-Module Pester
+        $result = Invoke-Pester -Path ./tests -Output Detailed -PassThru
+        Set-Content -Path TestResults.xml -Value $result.TestResultXml
+
+    - name: Upload Pester test results
+      uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: pester-test-results
+        path: TestResults.xml
+
+    - name: Determine version and pre-release status
+      run: |
+        $version = Get-Content ./SentinelBuddy/SentinelBuddy.psd1 | Select-String -Pattern "ModuleVersion\s+=\s+'(.+)'" | ForEach-Object { $_.Matches[0].Groups[1].Value }
+        $preRelease = $null
+        if ($version -match "-") {
+          $preRelease = "true"
+        }
+        echo "VERSION=$version" >> $GITHUB_ENV
+        echo "PRERELEASE=$preRelease" >> $GITHUB_ENV
+
+    - name: Create release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ env.VERSION }}
+        release_name: SentinelBuddy v${{ env.VERSION }}
+        prerelease: ${{ env.PRERELEASE }}
+
+    - name: Package module
+      run: |
+        $moduleName = 'SentinelBuddy'
+        $outputPath = "./$moduleName-$env:VERSION.zip"
+        Compress-Archive -Path ./$moduleName/* -DestinationPath $outputPath
+
+    - name: Upload packaged module to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./SentinelBuddy-${{ env.VERSION }}.zip
+        asset_name: SentinelBuddy-${{ env.VERSION }}.zip
+        asset_content_type: application/zip
+
+    # Uncomment the following step to
