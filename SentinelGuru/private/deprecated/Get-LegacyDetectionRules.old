@@ -1,0 +1,75 @@
+#Requires -PSEdition Core
+function Get-LegacyDetectionRules {
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0, Mandatory = $true)]
+        [string]$RepositoryName,
+        [Parameter(Position = 1, Mandatory = $true)]
+        [string]$ClassObject,
+        [Parameter(Position = 2)]
+        [string]$SubFolder = "",
+        [Parameter(Position = 3)]
+        [string]$Ref
+    )
+
+    # load the helper functions
+    . "$PSScriptRoot\..\private\Add-Helpers.ps1"
+
+    # Attempt to load the class file
+    $ClassFilePath = "$PSScriptRoot\..\private\_Class_$ClassObject.ps1"
+    try {
+        . "$ClassFilePath"
+    } catch {
+        throw "Failed to load class file '$ClassFilePath'. $($_.Exception.Message)"
+    }
+
+    # Check the rate limit and display a warning message if necessary
+    Measure-GitHubRateLimit
+
+    # get the default branch if the ref is not specified (master/main)
+    if (!$Ref) {
+        $Ref = Get-GitHubDefaultBranch -Repository $RepositoryName
+    }
+
+    # Retrieve the tree of the specified branch
+    # THIS URL IS INCORECT | THIS URL IS INCORECT | THIS URL IS INCORECT
+    $treeUrl = "https://api.github.com/repos/$RepositoryName/git/trees/$Ref?recursive=1"
+    try {
+        $tree = Invoke-RestMethod -Uri $treeUrl -Headers @{ "User-Agent" = "PowerShell" } -Method Get -ContentType "application/vnd.github.v3+json"
+    } catch {
+        throw "Failed to retrieve tree from '$treeUrl'. $($_.Exception.Message)"
+    }
+
+    # Filter the tree to include only YAML files
+    $yamlTree = $tree.tree | Where-Object { $_.type -eq "blob" -and $_.path.EndsWith(".yaml") }
+    if ($SubFolder) {
+        $yamlTree = $yamlTree | Where-Object { $_.path.StartsWith($SubFolder) }
+    }
+
+    # Loop through each YAML file and parse it into a LegacyDetectionRule object
+    $rules = @()
+    foreach ($yamlFile in $yamlTree) {
+        try {
+            # Retrieve the contents of the YAML file
+            $yamlUrl = $yamlFile.url
+            $yaml = Invoke-RestMethod -Uri $yamlUrl -Headers @{ "User-Agent" = "PowerShell" } -Method Get -ContentType "application/vnd.github.v3.raw"
+
+            # Parse the YAML into a hash table
+            $hash = ConvertFrom-Yaml -InputObject $yaml
+
+            # Create a new LegacyDetectionRule object from the hash table
+            $rule = [LegacyDetectionRule]::new()
+            $rule.Name = $hash.Name
+            $rule.Version = $hash.Version
+            $rule.DetectionScript = $hash.DetectionScript
+            $rule.InstallScript = $hash.InstallScript
+            $rule.UninstallScript = $hash.UninstallScript
+
+            $rules += $rule
+        } catch {
+            Write-Warning "Failed to parse YAML file '$($yamlFile.path)'. $($_.Exception.Message)"
+        }
+    }
+
+    return $rules
+}
