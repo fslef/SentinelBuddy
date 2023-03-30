@@ -1,78 +1,76 @@
-name: Build and Test PowerShell Module
+name: Build and Deploy PowerShell Module
 
 on:
   push:
     branches:
       - main
-      -feature/*
+      - 'feature/**'
+      - develop
+      - 'release/**'
+      - 'hotfix/**'
   pull_request:
     branches:
       - main
+      - develop
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: windows-latest
     steps:
-    - name: Check out repository
+    - name: Checkout repository
       uses: actions/checkout@v2
 
     - name: Setup PowerShell
       uses: actions/setup-powershell@v1
       with:
-        powershell-version: '7.0.0'
+        version: '7.x'
 
     - name: Install dependencies
       run: |
-        Install-Module -Name Pester -Scope CurrentUser -Force -SkipPublisherCheck
-        Install-Module -Name PowerShell-Yaml -Scope CurrentUser -Force -SkipPublisherCheck
+        Install-Module Pester -Scope CurrentUser -Force
+        Install-Module PowerShellGet -Scope CurrentUser -Force
 
     - name: Run Pester tests
       run: |
-        Import-Module Pester
-        $result = Invoke-Pester -Path ./tests -Output Detailed -PassThru
-        Set-Content -Path TestResults.xml -Value $result.TestResultXml
+        $testResults = Invoke-Pester -OutputFormat NUnitXml -OutputFile TestResults.xml -PassThru
+        if ($env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF -eq 'refs/heads/main' -and $testResults.FailedCount -gt 0) {
+          throw "Tests failed. Aborting deployment for release."
+        }
+      shell: pwsh
 
-    - name: Upload Pester test results
+    - name: Upload test results
       uses: actions/upload-artifact@v2
       if: always()
       with:
-        name: pester-test-results
+        name: test-results
         path: TestResults.xml
 
-    - name: Determine version and pre-release status
+    - name
+        Install GitVersion
+      run: dotnet tool install --global GitVersion.Tool --version 5.x
+      shell: pwsh
+
+    - name: Bump version and create GitHub release
+      if: github.event_name == 'push'
       run: |
-        $version = Get-Content ./SentinelBuddy/SentinelBuddy.psd1 | Select-String -Pattern "ModuleVersion\s+=\s+'(.+)'" | ForEach-Object { $_.Matches[0].Groups[1].Value }
-        $preRelease = $null
-        if ($version -match "-") {
-          $preRelease = "true"
+        $gitVersion = gitversion /output json /showvariable SemVer
+        if ($env:GITHUB_REF -eq 'refs/heads/main') {
+          # Bump version and create release
+          $version = $gitVersion
+        } elseif ($env:GITHUB_REF -like 'refs/heads/feature/*') {
+          # Append pre-version build for feature branches
+          $version = "$gitVersion-alpha"
+        } else {
+          # Keep version as-is for develop, release/** and hotfix/** branches
+          $version = $gitVersion
         }
-        echo "VERSION=$version" >> $GITHUB_ENV
-        echo "PRERELEASE=$preRelease" >> $GITHUB_ENV
+        Write-Host "Version: $version"
+      shell: pwsh
 
-    - name: Create release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ env.VERSION }}
-        release_name: SentinelBuddy v${{ env.VERSION }}
-        prerelease: ${{ env.PRERELEASE }}
-
-    - name: Package module
+    - name: Publish to PowerShell Gallery
       run: |
-        $moduleName = 'SentinelBuddy'
-        $outputPath = "./$moduleName-$env:VERSION.zip"
-        Compress-Archive -Path ./$moduleName/* -DestinationPath $outputPath
-
-    - name: Upload packaged module to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./SentinelBuddy-${{ env.VERSION }}.zip
-        asset_name: SentinelBuddy-${{ env.VERSION }}.zip
-        asset_content_type: application/zip
-
-    # Uncomment the following step to
+        # Uncomment the following lines to enable publishing to the PowerShell Gallery
+        # $moduleManifest = Get-ChildItem -Path . -Filter *.psd1 -Recurse
+        # Publish-Module -Path $moduleManifest.Directory -NuGetApiKey ${{ secrets.PS_GALLERY_API_KEY }} -Confirm:$false
+      shell: pwsh
+      if: github.event_name == 'push' && github.ref == 'refs/
