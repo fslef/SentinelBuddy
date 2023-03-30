@@ -45,8 +45,7 @@ jobs:
         name: test-results
         path: TestResults.xml
 
-    - name
-        Install GitVersion
+    - name: Install GitVersion
       run: dotnet tool install --global GitVersion.Tool --version 5.x
       shell: pwsh
 
@@ -65,6 +64,14 @@ jobs:
           $version = $gitVersion
         }
         Write-Host "Version: $version"
+      shell: pwsh
+
+    - name: Update module manifest version
+      run: |
+        $moduleManifestPath = (Get-ChildItem -Path . -Filter *.psd1 -Recurse).FullName
+        $manifest = Test-ModuleManifest -Path $moduleManifestPath
+        $newManifestContent = $manifest.RawContent -replace "(?<=Version\s*=\s*').*?(?=')", $version
+        Set-Content -Path $moduleManifestPath -Value $newManifestContent
       shell: pwsh
 
     - name: Publish to PowerShell Gallery
