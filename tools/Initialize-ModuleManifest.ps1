@@ -25,8 +25,8 @@ function New-File {
 }
 
 # We cloned our project to /Users/francoislefebvre/gitRepos/SentinelGuru
-$Path = '~/gitRepos/SentinelGuru'
-$ModuleName = 'SentinelGuru'
+$Path = '~/gitRepos/SentinelBuddy'
+$ModuleName = 'SentinelBuddy'
 $currentYear = (Get-Date).Year
 
 # Create the module and private function directories
@@ -52,6 +52,8 @@ $moduleSettings = @{
     Copyright         = "MIT License - Copyright © $currentYear Francois Lefebvre"
     Description       = 'Powershell module to facilitate consolidation of detection rules and their data sources'
     PowerShellVersion = '7.0'
+    #ScriptsToProcess  = @(./private/*.ps1)
+    #FormatsToProcess  = @(./private/*.ps1xml)
     FunctionsToExport = @()
     CmdletsToExport   = @()
     VariablesToExport = '*'
