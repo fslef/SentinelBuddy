@@ -1,6 +1,6 @@
 Describe "PowerShell script requirements" {
-    $ps1Files = Get-ChildItem -Path "$PSScriptRoot\..\SentinelGuru\private\*.ps1" -Recurse
-    $ps1Files += Get-ChildItem -Path "$PSScriptRoot\..\SentinelGuru\Public\*.ps1" -Recurse
+    $ps1Files = Get-ChildItem -Path "$PSScriptRoot\..\SentinelBuddy\private\*.ps1" -Recurse
+    $ps1Files += Get-ChildItem -Path "$PSScriptRoot\..\SentinelBuddy\Public\*.ps1" -Recurse
 
     ForEach ($file in $ps1Files) {
         Context "File $($file.FullName)" {
