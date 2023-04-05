@@ -24,9 +24,9 @@ function New-File {
     }
 }
 
-# We cloned our project to /Users/francoislefebvre/gitRepos/SentinelGuru
-$Path = '~/gitRepos/SentinelGuru'
-$ModuleName = 'SentinelGuru'
+# We cloned our project to /Users/francoislefebvre/gitRepos/SentinelBuddy
+$Path = '~/gitRepos/SentinelBuddy'
+$ModuleName = 'SentinelBuddy'
 $currentYear = (Get-Date).Year
 
 # Create the module and private function directories
@@ -45,7 +45,7 @@ New-File "$Path/tests/$ModuleName.Tests.ps1"
 Write-Host ""
 
 $moduleSettings = @{
-    RootModule        = '.\SentinelGuru.psm1'
+    RootModule        = '.\SentinelBuddy.psm1'
     Path              = "$Path/$ModuleName/$ModuleName.psd1"
     ModuleVersion     = '0.0.1'
     GUID              = 'a6aba8fa-1fb8-40ae-83c9-7f87ce8d0cfd'
